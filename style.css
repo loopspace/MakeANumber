@@ -1,0 +1,16 @@
+body {
+    margin: 0px;
+}
+
+.tile {
+    background-color: #ccc;
+    border-radius: 10px;
+    border-color: #ccc;
+    border-style: solid;
+    border-width: 10px;
+    position: absolute;
+    display: none;
+    color: #ccc;
+    text-align: center;
+    overflow: hidden;
+}
