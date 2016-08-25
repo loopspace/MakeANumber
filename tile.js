@@ -1,7 +1,8 @@
 var edge,
     interpolate,
     getPositionFromAnchor,
-    getAnchorFromPosition
+    getAnchorFromPosition,
+    getRelativeCoords
 ;
 
 Tiles = function() {
@@ -70,6 +71,11 @@ Tiles.prototype.setScale = function(x,y) {
     this.foreachTile('rescale');
 }
 
+Tiles.prototype.destroy = function() {
+    this.foreachTile('remove');
+    this.tiles = [];
+}
+
 Tiles.prototype.ScreenAnchor = function(a) {
     var w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
     var h = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
@@ -77,6 +83,12 @@ Tiles.prototype.ScreenAnchor = function(a) {
     p.x /= this.scale;
     p.y /= this.scale;
     return p;
+}
+
+Tiles.prototype.ScreenCoordinates = function(x,y) {
+    x /= this.scale;
+    y /= this.scale;
+    return {x: x, y: y};
 }
 
 function edge (t) {
@@ -138,9 +150,15 @@ function getAnchorFromPosition(w,h,x,y,a) {
     return {x: x, y: y};
 }
 
+function getRelativeCoords(event) {
+    if (event.offsetX !== undefined && event.offsetY !== undefined) { return { x: event.offsetX, y: event.offsetY }; }
+    return { x: event.layerX, y: event.layerY };
+}
+
+
 Tile = function() {
     this.element = document.createElement('div');
-    this.element.classList.add('tile');
+    this.element.classList.add('tile','noselect');
     document.body.appendChild(this.element);
     this.width = 0;
     this.height = 0;
@@ -187,7 +205,7 @@ Tile.prototype.setElement = function(k) {
     } else if (k == "fontSize") {
 	this.element.style.fontSize = fs + 'px';
     } else {
-	this.element.style[k] = ( this[k] * s ) + 'px';
+	this.element.style[k] = this[k];
     }
 }
 
@@ -341,4 +359,84 @@ Tile.prototype.update = function(t) {
 Tile.prototype.destroy = function() {
     document.body.removeChild(this.element);
     this.parent.removeTile(this);
+}
+
+Tile.prototype.remove = function() {
+    document.body.removeChild(this.element);
+}
+
+Tile.prototype.draggable = function(b) {
+    var self = this;
+    if (b) {
+	this.fndown = function(e) { self.startDrag(e) };
+	this.fnmove = function(e) { self.doDrag(e) };
+	this.fnup = function(e) { self.stopDrag(e) };
+	this.element.addEventListener('mousedown',this.fndown,false);
+	this.element.addEventListener('mousemove',this.fnmove,false);
+	this.element.addEventListener('mouseup',this.fnup,false);
+	this.isDraggable = true;
+    } else {
+	this.element.removeEventListener('mousedown',this.fndown,false);
+	this.element.removeEventListener('mousemove',this.fnmove,false);
+	this.element.removeEventListener('mouseup',this.fnup,false);
+	this.isDraggable = false;
+	this.fndown = null;
+	this.fnmove = null;
+	this.fnup = null;
+    }
+}
+
+Tile.prototype.startDrag = function(e) {
+    var p = getRelativeCoords(e);
+    p = this.parent.ScreenCoordinates(p.x,p.y);
+    this.offset = p;
+    this.isDragging = true;
+    this.element.style.zIndex = 1;
+}
+
+Tile.prototype.doDrag = function(e) {
+    if (!this.isDragging) {
+	return false;
+    }
+    var p = getRelativeCoords(e);
+    p = this.parent.ScreenCoordinates(p.x,p.y);
+    this.left += p.x - this.offset.x;
+    this.top += p.y - this.offset.y;
+    this.setElement("left");
+    this.setElement("top");
+}
+
+Tile.prototype.stopDrag = function(e) {
+    this.doDrag(e);
+    if (this.atEndDrag) {
+	var self = this;
+	this.atEndDrag(self,this.offset);
+    }
+    this.isDragging = false;
+    this.element.style.zIndex = 0;
+}
+
+Tile.prototype.pointIsIn = function(x,y) {
+    x -= this.left;
+    y -= this.top;
+    if (x < 0 || y < 0 || x > this.width || y > this.height) {
+	return false;
+    }
+    return true;
+}
+
+Tile.prototype.savePosition = function(p) {
+    var x,y;
+    if (p) {
+	x = p.x || this.left;
+	y = p.y || this.top;
+    } else {
+	x = this.left;
+	y = this.top;
+    }	
+    this.savedPosition = {x: x, y: y};
+}
+
+Tile.prototype.moveToSaved = function() {
+    this.moveTo(this.savedPosition.x,this.savedPosition.y,"north west",1);
 }

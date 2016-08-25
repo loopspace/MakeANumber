@@ -14,3 +14,52 @@ body {
     text-align: center;
     overflow: hidden;
 }
+
+/*
+From: http://stackoverflow.com/a/4407335
+*/
+.noselect {
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none;   /* Chrome/Safari/Opera */
+  -khtml-user-select: none;    /* Konqueror */
+  -moz-user-select: none;      /* Firefox */
+  -ms-user-select: none;       /* Internet Explorer/Edge */
+  user-select: none;           /* Non-prefixed version, currently
+                                  not supported by any browser */
+}
+
+#scorediv {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    font-size: 32px;
+    border-style: inset;
+    border-width: 10px;
+    border-color: #ccc;
+    background-color: #ccc;
+    display: inline-block;
+    padding: 5px;
+    z-index: 5;
+}
+
+#message {
+    position: absolute;
+    width: 33%;
+    right: 0;
+    left: 0;
+    margin: 0 auto;
+    top: 50px;
+    font-size: 16;
+    border-style: outset;
+    border-width: 10px;
+    border-color: #ccc;
+    background-color: #ccc;
+    display: none;
+    padding: 5px;
+    z-index: 5;
+}
+
+#message div:first-child {
+    font-size: 200%;
+    text-align: center;
+}
