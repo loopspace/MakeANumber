@@ -34,11 +34,24 @@ var ops = [
 var numbers;
 var tilesets = [
     [
+	[25,50,100,200],
+	[1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,10]
+    ],
+    [
 	[25,50,75,100],
+	[1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,10]
+    ],
+    [
+	[12,37,62,87],
 	[1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,10]
     ]
 ];
-var tileset = 0;
+var options = {
+    tileSet: 0,
+    allTiles: 0,
+    exactTarget: 0,
+    operationLevel: 0
+}
 var tiles;
 var score = 0;
 
@@ -107,12 +120,56 @@ function getRandomInt(min, max) {
 }
 
 function init() {
-    initTiles();
-    window.addEventListener('resize',setSize,false);
+    var btn = document.getElementById("setopt");
+    btn.addEventListener('click',startGame,false);
+    /*
+      Make the question mark toggle the help pane
+     */
+    var hlnk = document.getElementById('helplink');
+    var hdv = document.getElementById('help');
+    hlnk.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (hdv.style.display == 'none' || hdv.style.display == '') {
+            hdv.style.display = 'block';
+        } else {
+            hdv.style.display = 'none';
+        }
+        return false;
+    });
+    /*
+      Set the help pane height to the window height,
+      Should probably update on resize
+     */
+    var h = window.innerHeight - 20;
+    hdv.style.height = h + 'px';
 }
 
 function setSize() {
     tiles.setScale(7,4);
+}
+
+function startGame() {
+    getOptions();
+    var optdiv = document.getElementById("options");
+    optdiv.style.display = "none";
+    var scorediv = document.getElementById("scorediv");
+    scorediv.style.display = "inline-block";
+    initTiles();
+    window.addEventListener('resize',setSize,false);
+}
+
+function getOptions() {
+    /*
+      get options using 
+      myForm.elements.namedItem("my-radio-button-group-name").value
+      from http://stackoverflow.com/a/37615705
+    */
+    var form = document.getElementById('optform');
+    options.tileSet = optform.elements.namedItem('lvlopt').value;
+    options.allTiles = optform.elements.namedItem('tileopt').value;
+    options.exactTarget = optform.elements.namedItem('tgtopt').value;
+    options.operationLevel = optform.elements.namedItem('opopt').value;
+    console.log(options);
 }
 
 function initTiles() {
@@ -126,6 +183,7 @@ function initTiles() {
     
     tiles = new Tiles();
     tiles.setScale(7,4);
+    var tileset = options.tileSet;
     var vals = shuffle(tilesets[tileset][0]);
     var tile;
     for (var i = 0; i < 4; i++) {
@@ -217,34 +275,12 @@ function setTarget() {
 	b = null;
 
 	numlen -= 1;
-	if (numlen == 1) {
-	    var total = answer.contents;
-	    var msg;
-	    if (total == tgt.target) {
-		msg = "Congratulations!";
-		score += 10;
-	    } else if (Math.abs(total - tgt.target) < 5) {
-		msg = "Very close!";
-		score += 5;
-	    } else if (Math.abs(total - tgt.target) < 10) {
-		msg = "Good try!";
-		score += 1;
-	    } else {
-		msg = "Try another.";
-	    }
-	    var msgdiv = document.getElementById('message');
-	    msgdiv.innerHTML = '<div>' + msg + "</div><p>Here's our route:</p><ul><li>" + tgt.route.join('<li>') + '</ul>';
-	    msgdiv.style.display = 'inline-block';
-	    var scoresp = document.getElementById('score');
-	    scoresp.innerHTML = score;
-	    msgdiv.addEventListener('click',initTiles,false);
-	} else {
-	
+	if (numlen > 1) {
 	    answer = tiles.newTile();
 	    answer.setSize(1,1);
 	    answer.show();
 	    answer.showContents();
-	    answer.setPosition(4.25,2.5,"centre")
+	    answer.setPosition(4.25,1.5,"centre")
 	    answer.savePosition();
 	}
     };
@@ -307,6 +343,27 @@ function setTarget() {
 	    } else {
 		t.moveToSaved();
 	    }
+	} else if (tgttile.pointIsIn(t.left + p.x, t.top + p.y)) {
+	    var total = t.contents;
+	    var msg;
+	    if (total == tgt.target) {
+		msg = "Congratulations!";
+		score += 10;
+	    } else if (Math.abs(total - tgt.target) < 5) {
+		msg = "Very close!";
+		score += 5;
+	    } else if (Math.abs(total - tgt.target) < 10) {
+		msg = "Good try!";
+		score += 1;
+	    } else {
+		msg = "Try another.";
+	    }
+	    var msgdiv = document.getElementById('message');
+	    msgdiv.innerHTML = '<div>' + msg + "</div><p>Here's our route:</p><ul><li>" + tgt.route.join('<li>') + '</ul>';
+	    msgdiv.style.display = 'inline-block';
+	    var scoresp = document.getElementById('score');
+	    scoresp.innerHTML = score;
+	    msgdiv.addEventListener('click',initTiles,false);
 	} else {
 	    t.moveToSaved();
 	    if (a == t) {
@@ -341,7 +398,7 @@ function setTarget() {
     tgttile.setElement("zIndex");
     var p = tiles.ScreenAnchor("south");
     tgttile.setPosition(p.x,p.y,"north");
-    tgttile.moveTo(p.x,1,"north",1);
+    tgttile.moveTo(p.x,2,"north",1);
     first = tiles.newTile();
     op = tiles.newTile();
     second = tiles.newTile();
@@ -351,7 +408,7 @@ function setTarget() {
     first.setSize(0,0);
     first.show();
     first.setColours(null,"#eee");
-    first.setPosition(1.25,2.5,"centre")
+    first.setPosition(1.25,1.5,"centre")
     first.resizeTo(1,1,"centre",1);
     first.zIndex = -1;
     first.setElement("zIndex");
@@ -361,7 +418,7 @@ function setTarget() {
     op.setElement("zIndex");
     op.setContents('+');
     op.hideContents();
-    op.setPosition(2,2.5,"centre")
+    op.setPosition(2,1.5,"centre")
     op.resizeTo(.5,.5,"centre",1);
     op.finishAnimation = function() {
 	op.showContents();
@@ -382,13 +439,13 @@ function setTarget() {
     second.show();
     second.showContents();
     second.setColours(null,"#eee");
-    second.setPosition(2.75,2.5,"centre")
+    second.setPosition(2.75,1.5,"centre")
     second.zIndex = -1;
     second.setElement("zIndex");
     second.resizeTo(1,1,"centre",1);
     equals.setSize(0,0);
     equals.show();
-    equals.setPosition(3.5,2.5,"centre")
+    equals.setPosition(3.5,1.5,"centre")
     equals.resizeTo(.5,.5,"centre",1);
     equals.setContents("=");
     equals.hideContents();
@@ -400,7 +457,7 @@ function setTarget() {
     answer.setSize(0,0);
     answer.show();
     answer.showContents();
-    answer.setPosition(4.25,2.5,"centre")
+    answer.setPosition(4.25,1.5,"centre")
     answer.resizeTo(1,1,"centre",1);
     answer.finishAnimation = function() {
 	answer.savePosition();
@@ -409,7 +466,7 @@ function setTarget() {
     trash.show();
     trash.setContents('🗑');
     trash.hideContents();
-    trash.setPosition(6,2.5,"centre")
+    trash.setPosition(6,1.5,"centre")
     trash.savePosition();
     trash.zIndex = -1;
     trash.setElement("zIndex");

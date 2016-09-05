@@ -8,8 +8,51 @@
     <script type="text/javascript" src="script.js"></script>
   </head>
   <body>
+    <div id="help" class="help">
+      <h3>Make That Number</h3>
+      <p>
+	
+      </p>
+    </div>
+    <div id="helpsign" class="help">
+      <a href="#" id="helplink">?</a>
+    </div>
     <div id="scorediv">
       Score: <span id="score">0</span>
+    </div>
+    <div id="options">
+      <form id="optform">
+	<ul class="nobullets">
+	  <li>Target type:
+	  <li><input name="tgtopt" type="radio" value="0" checked>Exact</input>
+	  <li><input name="tgtopt" type="radio"
+		     value="1">Random</input>
+	</ul>
+	<ul class="nobullets">
+	  <li>Use tiles:
+	  <li><input name="tileopt" type="radio" value="0" checked>All</input>
+	  <li><input name="tileopt" type="radio"
+		     value="1">Some</input>
+	</ul>
+	<ul class="nobullets">
+	  <li>Tiles:
+	  <li><input name="lvlopt" type="radio" value="0" checked>Easy</input>
+	  <li><input name="lvlopt" type="radio"
+		     value="1">Medium</input>
+	  <li><input name="lvlopt" type="radio"
+		     value="2">Hard</input>
+	</ul>
+	<ul class="nobullets">
+	  <li>Operations:
+	  <li><input name="opopt" type="radio" value="0" checked>Easy</input>
+	  <li><input name="opopt" type="radio"
+		     value="1">Medium</input>
+	  <li><input name="opopt" type="radio"
+		     value="2">Hard</input>
+	</ul>
+	<br>
+	<button type="button" id="setopt">Start Game</button>
+      </form>
     </div>
     <div id="message">
     </div>
