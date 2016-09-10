@@ -229,6 +229,7 @@ function getRandomInt(min, max) {
 }
 
 function init() {
+    document.addEventListener('touchmove',function(e) {e.preventDefault()});
     var btn = document.getElementById("setopt");
     btn.addEventListener('click',startGame,false);
     /*
@@ -484,13 +485,11 @@ function setTarget() {
 	    if (a == t) {
 		a = null;
 		answer.setContents('');
-		//		answer.draggable(false);
 		answer.offClick();
 	    }
 	    if (b == t) {
 		b = null;
 		answer.setContents('');
-		//answer.draggable(false);
 		answer.offClick();
 	    }
 	}
@@ -609,7 +608,7 @@ function setTarget() {
     };
     trash.setSize(0,0);
     trash.show();
-    trash.setContents('🗑');
+    trash.setContents('\ud83d\uddd1');
     trash.hideContents();
     trash.setPosition(6,1.5,"centre")
     trash.savePosition();

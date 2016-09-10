@@ -98,6 +98,9 @@ Tiles.prototype.ScreenCoordinates = function(x,y) {
 }
 
 Tiles.prototype.checkTouch = function(e) {
+    if (e.type == 'touchstart') {
+	e = e.changedTouches[0];
+    }
     var p = this.ScreenCoordinates(e.clientX,e.clientY);
     var tile;
     this.foreachTile(function(t) {
@@ -114,6 +117,9 @@ Tiles.prototype.checkTouch = function(e) {
 
 Tiles.prototype.updateTouch = function(e) {
     if (this.touchedTile) {
+	if (e.type == 'touchmove') {
+	    e = e.changedTouches[0];
+	}
 	var p = this.ScreenCoordinates(e.clientX,e.clientY);
 	this.touchedTile.updateTouch(p);
     }
@@ -121,6 +127,9 @@ Tiles.prototype.updateTouch = function(e) {
 
 Tiles.prototype.endTouch = function(e) {
     if (this.touchedTile) {
+	if (e.type == 'touchend') {
+	    e = e.changedTouches[0];
+	}
 	var p = this.ScreenCoordinates(e.clientX,e.clientY);
 	this.touchedTile.endTouch(p);
 	this.touchedTile = null;
