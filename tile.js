@@ -9,6 +9,12 @@ Tiles = function() {
     this.tiles = [];
     var self = this;
     window.requestAnimationFrame(function(dt) {self.doAnimation(dt) });
+    document.body.addEventListener('mousedown', function(e) {self.checkTouch(e)});
+    document.body.addEventListener('touchstart', function(e) {self.checkTouch(e)});
+    document.body.addEventListener('mousemove', function(e) {self.updateTouch(e)});
+    document.body.addEventListener('touchmove', function(e) {self.updateTouch(e)});
+    document.body.addEventListener('mouseup', function(e) {self.endTouch(e)});
+    document.body.addEventListener('touchend', function(e) {self.endTouch(e)});
 }
 
 Tiles.prototype.doAfterAnimation = function(f) {
@@ -89,6 +95,36 @@ Tiles.prototype.ScreenCoordinates = function(x,y) {
     x /= this.scale;
     y /= this.scale;
     return {x: x, y: y};
+}
+
+Tiles.prototype.checkTouch = function(e) {
+    var p = this.ScreenCoordinates(e.clientX,e.clientY);
+    var tile;
+    this.foreachTile(function(t) {
+	if (t.checkTouch(p)) {
+	    tile = t;
+	}
+    })
+    if (tile) {
+	this.touchedTile = tile;
+    } else {
+	this.touchedTile = null;
+    }
+}
+
+Tiles.prototype.updateTouch = function(e) {
+    if (this.touchedTile) {
+	var p = this.ScreenCoordinates(e.clientX,e.clientY);
+	this.touchedTile.updateTouch(p);
+    }
+}
+
+Tiles.prototype.endTouch = function(e) {
+    if (this.touchedTile) {
+	var p = this.ScreenCoordinates(e.clientX,e.clientY);
+	this.touchedTile.endTouch(p);
+	this.touchedTile = null;
+    }
 }
 
 function edge (t) {
@@ -368,52 +404,10 @@ Tile.prototype.remove = function() {
 Tile.prototype.draggable = function(b) {
     var self = this;
     if (b) {
-	this.fndown = function(e) { self.startDrag(e) };
-	this.fnmove = function(e) { self.doDrag(e) };
-	this.fnup = function(e) { self.stopDrag(e) };
-	this.element.addEventListener('mousedown',this.fndown,false);
-	this.element.addEventListener('mousemove',this.fnmove,false);
-	this.element.addEventListener('mouseup',this.fnup,false);
 	this.isDraggable = true;
     } else {
-	this.element.removeEventListener('mousedown',this.fndown,false);
-	this.element.removeEventListener('mousemove',this.fnmove,false);
-	this.element.removeEventListener('mouseup',this.fnup,false);
 	this.isDraggable = false;
-	this.fndown = null;
-	this.fnmove = null;
-	this.fnup = null;
     }
-}
-
-Tile.prototype.startDrag = function(e) {
-    var p = getRelativeCoords(e);
-    p = this.parent.ScreenCoordinates(p.x,p.y);
-    this.offset = p;
-    this.isDragging = true;
-    this.element.style.zIndex = 1;
-}
-
-Tile.prototype.doDrag = function(e) {
-    if (!this.isDragging) {
-	return false;
-    }
-    var p = getRelativeCoords(e);
-    p = this.parent.ScreenCoordinates(p.x,p.y);
-    this.left += p.x - this.offset.x;
-    this.top += p.y - this.offset.y;
-    this.setElement("left");
-    this.setElement("top");
-}
-
-Tile.prototype.stopDrag = function(e) {
-    this.doDrag(e);
-    if (this.atEndDrag) {
-	var self = this;
-	this.atEndDrag(self,this.offset);
-    }
-    this.isDragging = false;
-    this.element.style.zIndex = 0;
 }
 
 Tile.prototype.pointIsIn = function(x,y) {
@@ -423,6 +417,46 @@ Tile.prototype.pointIsIn = function(x,y) {
 	return false;
     }
     return true;
+}
+
+Tile.prototype.checkTouch = function(p) {
+    if (!this.isDraggable) {
+	return false;
+    }
+    if (this.pointIsIn(p.x,p.y)) {
+	this.offset = {x: p.x - this.left, y: p.y - this.top};
+	this.isDragging = true;
+	this.element.style.zIndex = 1;
+	return true;
+    } else {
+	return false;
+    }
+}
+
+Tile.prototype.updateTouch = function(p) {
+    if (!this.isDragging) {
+	return false;
+    }
+    this.left = p.x - this.offset.x;
+    this.top = p.y - this.offset.y;
+    this.setElement("left");
+    this.setElement("top");
+}
+
+Tile.prototype.endTouch = function(p) {
+    if (!this.isDragging) {
+	return false;
+    }
+    this.left = p.x - this.offset.x;
+    this.top = p.y - this.offset.y;
+    this.setElement("left");
+    this.setElement("top");
+    if (this.atEndDrag) {
+	var self = this;
+	this.atEndDrag(self,p);
+    }
+    this.isDragging = false;
+    this.element.style.zIndex = 0;
 }
 
 Tile.prototype.savePosition = function(p) {

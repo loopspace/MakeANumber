@@ -1,5 +1,12 @@
 'use strict';
 
+var options = {
+    tileSet: 0,
+    allTiles: 0,
+    exactTarget: 0,
+    operationLevel: 0
+}
+
 var ops = [
     {
 	operation: function(a,b) { return a + b },
@@ -11,20 +18,30 @@ var ops = [
     {
 	operation: function(a,b) { return a - b },
 	condition: function(a,b) { if (a < b) {return false} else {return true} },
-	display: function(a,b) { return a + " - " + b + " = " + (a - b) },
-	symbol: '-',
+	display: function(a,b) { return a + " − " + b + " = " + (a - b) },
+	symbol: '−',
 	symmetric: false,
     },
     {
 	operation: function(a,b) { return a * b },
-	condition: function(a,b) { return true },
+	condition: function(a,b) {
+	    if (options.operationLevel == 0) {
+		if (a * b > 100) {
+		    return false;
+		} else {
+		    return true;
+		}
+	    } else {
+		return true;
+	    }
+	},
 	display: function(a,b) { return a + " × " + b + " = " + (a * b) },
 	symbol: '×',
 	symmetric: true,
     },
     {
 	operation: function(a,b) { return a / b },
-	condition: function(a,b) { if (a%b == 0) { return true } else { return false } },
+	condition: function(a,b) { if (options.operationLevel < 2) {return false}; if (a%b == 0) { return true } else { return false } },
 	display: function(a,b) { return a + " ÷ " + b + " = " + (a/b) },
 	symbol: '÷',
 	symmetric: false,
@@ -46,18 +63,101 @@ var tilesets = [
 	[1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,10]
     ]
 ];
-var options = {
-    tileSet: 0,
-    allTiles: 0,
-    exactTarget: 0,
-    operationLevel: 0
-}
 var tiles;
 var score = 0;
 
-/*
-The probabilities are skewed in favour of + and x; FIX THIS
-*/
+function getRandomTarget(a) {
+    options.operationLevel = 2;
+    var i,j,k,l,m,c,d;
+    var b = [];
+    var lst = [[a,[]]];
+    for (i = 0; i < a.length; i++) {
+	b.push([a[i],[]]);
+    }
+    i = 0;
+    while (i < lst.length) {
+	for (j = 1; j < lst[i][0].length; j++) {
+	    for (k = 0; k < j; k++) {
+		for (l = 0; l < ops.length; l++) {
+		    if (ops[l].condition(lst[i][0][j],lst[i][0][k])) {
+			c = [];
+			d = [];
+			c.push(ops[l].operation(lst[i][0][j],lst[i][0][k]));
+			for (m = 0; m < lst[i][0].length; m++) {
+			    if (m != j && m != k) {
+				c.push(lst[i][0][m]);
+			    }
+			}
+			for (m = 0; m < lst[i][1].length; m++) {
+			    d.push(lst[i][1][m]);
+			}
+			d.push([j,k,l]);
+			b.push([c[0],d]);
+			lst.push([c,d]);
+		    }
+		    if (!ops[l].symmetric && ops[l].condition(lst[i][0][k],lst[i][0][j])) {
+			c = [];
+			d = [];
+			c.push(ops[l].operation(lst[i][0][k],lst[i][0][j]));
+			for (m = 0; m < lst[i][0].length; m++) {
+			    if (m != j && m != k) {
+				c.push(lst[i][0][m]);
+			    }
+			}
+			for (m = 0; m < lst[i][1].length; m++) {
+			    d.push(lst[i][1][m]);
+			}
+			d.push([k,j,l]);
+			b.push([c[0],d]);
+			lst.push([c,d]);
+		    }
+		}
+	    }
+	}
+	i++;
+    }
+    b.sort(function(x,y) {
+	if (x[0] == y[0]) {
+	    return x[1].length - y[1].length;
+	} else {
+	    return x[0] - y[0];
+	}
+    });
+    var bb = [];
+    var p;
+    for (i = 0; i < b.length; i++) {
+	if (b[i][0] !== p) {
+	    bb.push(b[i]);
+	}
+	p = b[i][0];
+    }
+    var tgt = getRandomInt(100,1000);
+    i = 0;
+    while (i < bb.length && bb[i][0] < tgt) {
+	i++;
+    }
+    if (i == bb.length) {
+	i--;
+    } else {
+	if (bb[i][0] - tgt > tgt - bb[i-1][0]) {
+	    i--;
+	}
+    }
+    lst = [];
+    b = [];
+    for (j = 0; j < a.length; j++) {
+	b.push(a[j]);
+    }
+    for (j = 0; j < bb[i][1].length; j++) {
+	lst.push(ops[bb[i][1][j][2]].display(b[bb[i][1][j][0]],b[bb[i][1][j][1]]));
+	c = ops[bb[i][1][j][2]].operation(b[bb[i][1][j][0]],b[bb[i][1][j][1]]);
+	b.splice(Math.max(bb[i][1][j][0],bb[i][1][j][1]),1);
+	b.splice(Math.min(bb[i][1][j][0],bb[i][1][j][1]),1);
+	b.unshift(c);
+    }
+    return { target: tgt, route: lst };
+}
+
 function getTarget(a) {
     var tops,
 	n,
@@ -79,6 +179,15 @@ function getTarget(a) {
     var b = [];
     for (i = 0; i < n; i++) {
 	b.push(a[i]);
+    }
+    if (options.allTiles != 0 ) {
+	var rm = getRandomInt(0,2);
+	var rmi;
+	for (i = 0; i < rm; i++) {
+	    rmi = getRandomInt(0,b.length);
+	    b.splice(rmi,1);
+	    n--;
+	}
     }
     // We do n - 1 operations
     for (i = 1; i < n; i++) {
@@ -142,6 +251,16 @@ function init() {
      */
     var h = window.innerHeight - 20;
     hdv.style.height = h + 'px';
+    /*
+     */
+    var redobtn = document.getElementById("redogame");
+    redobtn.addEventListener('click', function(e) {
+	e.preventDefault();
+    });
+    var quitbtn = document.getElementById("quitgame");
+    quitbtn.addEventListener('click', function(e) {
+	e.preventDefault();
+    });
 }
 
 function setSize() {
@@ -152,7 +271,7 @@ function startGame() {
     getOptions();
     var optdiv = document.getElementById("options");
     optdiv.style.display = "none";
-    var scorediv = document.getElementById("scorediv");
+    var scorediv = document.getElementById("scoredivctr");
     scorediv.style.display = "inline-block";
     initTiles();
     window.addEventListener('resize',setSize,false);
@@ -165,11 +284,10 @@ function getOptions() {
       from http://stackoverflow.com/a/37615705
     */
     var form = document.getElementById('optform');
-    options.tileSet = optform.elements.namedItem('lvlopt').value;
-    options.allTiles = optform.elements.namedItem('tileopt').value;
-    options.exactTarget = optform.elements.namedItem('tgtopt').value;
-    options.operationLevel = optform.elements.namedItem('opopt').value;
-    console.log(options);
+    options.tileSet = parseInt(optform.elements.namedItem('lvlopt').value);
+    options.allTiles = parseInt(optform.elements.namedItem('tileopt').value);
+    options.exactTarget = parseInt(optform.elements.namedItem('tgtopt').value);
+    options.operationLevel = parseInt(optform.elements.namedItem('opopt').value);
 }
 
 function initTiles() {
@@ -247,20 +365,18 @@ function setTarget() {
     var nums = [];
     var first,op,second,equals,answer,trash;
     var a,b,opindex,anstgt,undo,resetop;
-    var numdrag, ansdrag;
+    var numdrag, ansdrag, finished;
     var numlen,tgt,tgttile;
     undo = [];
     opindex = 0;
     ansdrag = function(t,e) {
-//	if (t.top < 2) {
-	    t.moveTo(anstgt.x,anstgt.y,"north west",.25);
-	    t.finishAnimation = resetop;
-//	} else {
-//	    t.moveToSaved();
-//	}
+	t.moveTo(anstgt.x,anstgt.y,"north west",.25);
+	t.finishAnimation = resetop;
     };
     resetop = function() {
-//	answer.draggable(false);
+	if (!a || !b) {
+	    return;
+	}
 	answer.offClick();
 	answer.draggable(true);
 	answer.savePosition();
@@ -285,7 +401,7 @@ function setTarget() {
 	}
     };
     numdrag = function(t,p) {
-	if (first.pointIsIn(t.left + p.x, t.top + p.y)) {
+	if (first.pointIsIn(p.x,p.y)) {
 	    t.moveTo(first.left,first.top,"north west",.25);
 	    if (a) {
 		a.moveToSaved();
@@ -293,34 +409,32 @@ function setTarget() {
 	    a = t;
 	    anstgt = a.savedPosition;
 	    if (b) {
-		answer.setContents(ops[opindex].operation(a.contents,b.contents));
-//		answer.draggable(true);
-		//		answer.atEndDrag = ansdrag;
-		answer.onClick(ansdrag);
+		if (ops[opindex].condition(a.contents,b.contents)) {
+		    answer.setContents(ops[opindex].operation(a.contents,b.contents));
+		    answer.onClick(ansdrag);
+		}
 	    }
-	} else if (second.pointIsIn(t.left + p.x, t.top + p.y)) {
+	} else if (second.pointIsIn(p.x,p.y)) {
 	    t.moveTo(second.left,first.top,"north west",.25);
 	    if (b) {
 		b.moveToSaved();
 	    }
 	    b = t;
 	    if (a) {
-		answer.setContents(ops[opindex].operation(a.contents,b.contents));
-//		answer.draggable(true);
-		//		answer.atEndDrag = ansdrag;
-		answer.onClick(ansdrag);
+		if (ops[opindex].condition(a.contents,b.contents)) {
+		    answer.setContents(ops[opindex].operation(a.contents,b.contents));
+		    answer.onClick(ansdrag);
+		}
 	    }
-	} else if (trash.pointIsIn(t.left + p.x, t.top + p.y)) {
+	} else if (trash.pointIsIn(p.x,p.y)) {
 	    if (a == t) {
 		a = null;
 		answer.setContents('');
-		//		answer.draggable(false);
 		answer.offClick();
 	    }
 	    if (b == t) {
 		b = null;
 		answer.setContents('');
-		//		answer.draggable(false);
 		answer.offClick();
 	    }
 	    var tindex = -1;
@@ -343,7 +457,7 @@ function setTarget() {
 	    } else {
 		t.moveToSaved();
 	    }
-	} else if (tgttile.pointIsIn(t.left + p.x, t.top + p.y)) {
+	} else if (tgttile.pointIsIn(p.x, p.y)) {
 	    var total = t.contents;
 	    var msg;
 	    if (total == tgt.target) {
@@ -364,6 +478,7 @@ function setTarget() {
 	    var scoresp = document.getElementById('score');
 	    scoresp.innerHTML = score;
 	    msgdiv.addEventListener('click',initTiles,false);
+	    finished = true;
 	} else {
 	    t.moveToSaved();
 	    if (a == t) {
@@ -386,8 +501,37 @@ function setTarget() {
 	t.savePosition();
 	t.atEndDrag = numdrag;
     });
+    var quitbtn = document.getElementById("quitgame");
+    quitbtn.addEventListener('click', function(e) {
+	e.preventDefault();
+	if (finished) {return};
+	finished = true;
+	var msgdiv = document.getElementById('message');
+	var bst = '';
+	if (options.exactTarget != 0) { bst = "best " };
+	msgdiv.innerHTML = "<div>Try again</div><p>Here's our " + bst + "route:</p><ul><li>" + tgt.route.join('<li>') + '</ul>';
+	msgdiv.style.display = 'inline-block';
+	var scoresp = document.getElementById('score');
+	scoresp.innerHTML = score;
+	msgdiv.addEventListener('click',initTiles,false);
+    });
+    var redobtn = document.getElementById("redogame");
+    redobtn.addEventListener('click', function(e) {
+	e.preventDefault();
+	if (finished) {return};
+	if (options.exactTarget == 0) {
+	    tgt = getTarget(nums);
+	} else {
+	    tgt = getRandomTarget(nums);
+	}
+	tgttile.setContents("Target:<br>" + tgt.target);
+    });
     numlen = nums.length;
-    tgt = getTarget(nums);
+    if (options.exactTarget == 0) {
+	tgt = getTarget(nums);
+    } else {
+	tgt = getRandomTarget(nums);
+    }
     tgttile = tiles.newTile();
     tgttile.setSize(2,1);
     tgttile.setContents("Target:<br>" + tgt.target);
@@ -432,6 +576,7 @@ function setTarget() {
 		opindex %= ops.length;
 	    }
 	    answer.setContents(ops[opindex].operation(a.contents,b.contents));
+	    answer.onClick(ansdrag);
 	}
 	op.setContents(ops[opindex].symbol);
     });

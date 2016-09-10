@@ -28,18 +28,29 @@ From: http://stackoverflow.com/a/4407335
                                   not supported by any browser */
 }
 
-#scorediv {
+#scoredivctr {
     position: absolute;
     right: 10px;
     bottom: 10px;
     font-size: 32px;
-    border-style: inset;
+    z-index: 5;
+    display: none;
+}
+
+#scorediv, #quit, #redo {
     border-width: 10px;
     border-color: #ccc;
     background-color: #ccc;
-    display: none;
+    display: inline-block;
     padding: 5px;
-    z-index: 5;
+}
+
+#scorediv {
+    border-style: inset;
+}
+
+#quit, #redo {
+    border-style: outset;
 }
 
 #options {
@@ -68,7 +79,7 @@ From: http://stackoverflow.com/a/4407335
     right: 0;
     left: 0;
     margin: 0 auto;
-    top: 50px;
+    bottom: 50px;
     font-size: 16;
     border-style: outset;
     border-width: 10px;
@@ -108,7 +119,7 @@ From: http://stackoverflow.com/a/4407335
     background: #ddd;
 }
 
-#helpsign a {
+#helpsign a, #quit a, #redo a {
     text-decoration: none;
     color: black;
 }
