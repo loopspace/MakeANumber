@@ -132,3 +132,6 @@ From: http://stackoverflow.com/a/4407335
     font-family: monospace;
 }
 
+.generating {
+    color: #a00;
+}

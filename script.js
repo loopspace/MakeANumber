@@ -1,5 +1,14 @@
 'use strict';
 
+/* TODO
+
+Allow all operations when user is calculating, just forbid when choosing target.
+
+If using all numbers, only allow target when one number is left.
+
+Something goes wrong occasionally when a tile is moved and it disappears.
+*/
+
 var options = {
     tileSet: 0,
     allTiles: 0,
@@ -66,96 +75,101 @@ var tilesets = [
 var tiles;
 var score = 0;
 
-function getRandomTarget(a) {
+function getRandomTarget(a,tgttile) {
     options.operationLevel = 2;
-    var i,j,k,l,m,c,d;
+    var i,j,k,l,m,c,d,getRoute,dts;
     var b = [];
+    var route = [];
     var lst = [[a,[]]];
+    var tgt = getRandomInt(100,1000);
     for (i = 0; i < a.length; i++) {
 	b.push([a[i],[]]);
     }
     i = 0;
-    while (i < lst.length) {
-	for (j = 1; j < lst[i][0].length; j++) {
-	    for (k = 0; k < j; k++) {
-		for (l = 0; l < ops.length; l++) {
-		    if (ops[l].condition(lst[i][0][j],lst[i][0][k])) {
-			c = [];
-			d = [];
-			c.push(ops[l].operation(lst[i][0][j],lst[i][0][k]));
-			for (m = 0; m < lst[i][0].length; m++) {
-			    if (m != j && m != k) {
-				c.push(lst[i][0][m]);
+//    var lg = document.getElementById('log');
+    getRoute = function() {
+	tgttile.setContents("Target:<br><span class=\"generating\">" + getRandomInt(100,1000) + "</span>");
+	for (var di = 0; di < 10000 && i < lst.length; di++) {
+	    for (j = 1; j < lst[i][0].length; j++) {
+		for (k = 0; k < j; k++) {
+		    for (l = 0; l < ops.length; l++) {
+			if (ops[l].condition(lst[i][0][j],lst[i][0][k])) {
+			    c = [];
+			    d = [];
+			    c.push(ops[l].operation(lst[i][0][j],lst[i][0][k]));
+			    for (m = 0; m < lst[i][0].length; m++) {
+				if (m != j && m != k) {
+				    c.push(lst[i][0][m]);
+				}
 			    }
-			}
-			for (m = 0; m < lst[i][1].length; m++) {
-			    d.push(lst[i][1][m]);
-			}
-			d.push([j,k,l]);
-			b.push([c[0],d]);
-			lst.push([c,d]);
-		    }
-		    if (!ops[l].symmetric && ops[l].condition(lst[i][0][k],lst[i][0][j])) {
-			c = [];
-			d = [];
-			c.push(ops[l].operation(lst[i][0][k],lst[i][0][j]));
-			for (m = 0; m < lst[i][0].length; m++) {
-			    if (m != j && m != k) {
-				c.push(lst[i][0][m]);
+			    for (m = 0; m < lst[i][1].length; m++) {
+				d.push(lst[i][1][m]);
 			    }
+			    d.push([j,k,l]);
+			    b.push([c[0],d]);
+			    lst.push([c,d]);
 			}
-			for (m = 0; m < lst[i][1].length; m++) {
-			    d.push(lst[i][1][m]);
+			if (!ops[l].symmetric && ops[l].condition(lst[i][0][k],lst[i][0][j])) {
+			    c = [];
+			    d = [];
+			    c.push(ops[l].operation(lst[i][0][k],lst[i][0][j]));
+			    for (m = 0; m < lst[i][0].length; m++) {
+				if (m != j && m != k) {
+				    c.push(lst[i][0][m]);
+				}
+			    }
+			    for (m = 0; m < lst[i][1].length; m++) {
+				d.push(lst[i][1][m]);
+			    }
+			    d.push([k,j,l]);
+			    b.push([c[0],d]);
+			    lst.push([c,d]);
 			}
-			d.push([k,j,l]);
-			b.push([c[0],d]);
-			lst.push([c,d]);
 		    }
 		}
 	    }
+	    i++;
 	}
-	i++;
-    }
-    b.sort(function(x,y) {
-	if (x[0] == y[0]) {
-	    return x[1].length - y[1].length;
+	if (i < lst.length && lst[i][0].length > 1) {
+	    window.requestAnimationFrame(getRoute);
 	} else {
-	    return x[0] - y[0];
+	    var bb = [];
+	    var p;
+	    for (i = 0; i < b.length; i++) {
+		if (!bb[b[i][0]] || bb[b[i][0]].length > b[i][1].length) {
+		    bb[b[i][0]] = b[i][1];
+		}
+	    }
+	    var rt;
+	    if (bb[tgt]) {
+		rt = bb[tgt];
+	    } else if (bb.length < tgt) {
+		rt = bb[bb.length-1];
+	    } else {
+		i = 0;
+		while (!bb[tgt - i] && !bb[tgt+i]) {
+		    i++;
+		}
+		rt = bb[tgt - i] || bb[tgt + i];
+	    }
+	    b = [];
+	    for (j = 0; j < a.length; j++) {
+		b.push(a[j]);
+	    }
+	    for (j = 0; j < rt.length; j++) {
+		route.push(ops[rt[j][2]].display(b[rt[j][0]],b[rt[j][1]]));
+		c = ops[rt[j][2]].operation(b[rt[j][0]],b[rt[j][1]]);
+		b.splice(Math.max(rt[j][0],rt[j][1]),1);
+		b.splice(Math.min(rt[j][0],rt[j][1]),1);
+		b.unshift(c);
+	    }
+	    tgttile.setContents("Target:<br>" + tgt);
 	}
-    });
-    var bb = [];
-    var p;
-    for (i = 0; i < b.length; i++) {
-	if (b[i][0] !== p) {
-	    bb.push(b[i]);
-	}
-	p = b[i][0];
     }
-    var tgt = getRandomInt(100,1000);
-    i = 0;
-    while (i < bb.length && bb[i][0] < tgt) {
-	i++;
+    tgttile.finishAnimation = function() {
+	window.requestAnimationFrame(getRoute);
     }
-    if (i == bb.length) {
-	i--;
-    } else {
-	if (bb[i][0] - tgt > tgt - bb[i-1][0]) {
-	    i--;
-	}
-    }
-    lst = [];
-    b = [];
-    for (j = 0; j < a.length; j++) {
-	b.push(a[j]);
-    }
-    for (j = 0; j < bb[i][1].length; j++) {
-	lst.push(ops[bb[i][1][j][2]].display(b[bb[i][1][j][0]],b[bb[i][1][j][1]]));
-	c = ops[bb[i][1][j][2]].operation(b[bb[i][1][j][0]],b[bb[i][1][j][1]]);
-	b.splice(Math.max(bb[i][1][j][0],bb[i][1][j][1]),1);
-	b.splice(Math.min(bb[i][1][j][0],bb[i][1][j][1]),1);
-	b.unshift(c);
-    }
-    return { target: tgt, route: lst };
+    return { target: tgt, route: route };
 }
 
 function getTarget(a) {
@@ -262,6 +276,31 @@ function init() {
     quitbtn.addEventListener('click', function(e) {
 	e.preventDefault();
     });
+    /*
+      When using a random target, not all the options make sense
+    */
+    var optform = document.getElementById('optform');
+    var disopts = function() {
+	if (optform.elements.namedItem('tgtopt').value == 1) {
+	    for (var i = 0; i < optform.elements.namedItem('tileopt').length; i++) {
+		optform.elements.namedItem('tileopt')[i].disabled = true;
+	    }
+	    for (var i = 0; i < optform.elements.namedItem('opopt').length; i++) {
+		optform.elements.namedItem('opopt')[i].disabled = true;
+	    }
+	} else {
+	    for (var i = 0; i < optform.elements.namedItem('tileopt').length; i++) {
+		optform.elements.namedItem('tileopt')[i].disabled = false;
+	    }
+	    for (var i = 0; i < optform.elements.namedItem('opopt').length; i++) {
+		optform.elements.namedItem('opopt')[i].disabled = false;
+	    }
+	}	    
+    }
+    for (var i = 0; i < optform.elements.namedItem('tgtopt').length; i++) {
+	optform.elements.namedItem('tgtopt')[i].addEventListener('click',disopts);
+    }
+    disopts();
 }
 
 function setSize() {
@@ -284,7 +323,7 @@ function getOptions() {
       myForm.elements.namedItem("my-radio-button-group-name").value
       from http://stackoverflow.com/a/37615705
     */
-    var form = document.getElementById('optform');
+    var optform = document.getElementById('optform');
     options.tileSet = parseInt(optform.elements.namedItem('lvlopt').value);
     options.allTiles = parseInt(optform.elements.namedItem('tileopt').value);
     options.exactTarget = parseInt(optform.elements.namedItem('tgtopt').value);
@@ -410,9 +449,15 @@ function setTarget() {
 	    a = t;
 	    anstgt = a.savedPosition;
 	    if (b) {
-		if (ops[opindex].condition(a.contents,b.contents)) {
-		    answer.setContents(ops[opindex].operation(a.contents,b.contents));
-		    answer.onClick(ansdrag);
+		if (b == t) {
+		    b = null;
+		    answer.setContents('');
+		    answer.offClick();
+		} else {
+		    if (ops[opindex].condition(a.contents,b.contents)) {
+			answer.setContents(ops[opindex].operation(a.contents,b.contents));
+			answer.onClick(ansdrag);
+		    }
 		}
 	    }
 	} else if (second.pointIsIn(p.x,p.y)) {
@@ -422,9 +467,15 @@ function setTarget() {
 	    }
 	    b = t;
 	    if (a) {
-		if (ops[opindex].condition(a.contents,b.contents)) {
-		    answer.setContents(ops[opindex].operation(a.contents,b.contents));
-		    answer.onClick(ansdrag);
+		if (a == t) {
+		    a = null;
+		    answer.setContents('');
+		    answer.offClick();
+		} else {
+		    if (ops[opindex].condition(a.contents,b.contents)) {
+			answer.setContents(ops[opindex].operation(a.contents,b.contents));
+			answer.onClick(ansdrag);
+		    }
 		}
 	    }
 	} else if (trash.pointIsIn(p.x,p.y)) {
@@ -508,7 +559,7 @@ function setTarget() {
 	var msgdiv = document.getElementById('message');
 	var bst = '';
 	if (options.exactTarget != 0) { bst = "best " };
-	msgdiv.innerHTML = "<div>Try again</div><p>Here's our " + bst + "route:</p><ul><li>" + tgt.route.join('<li>') + '</ul>';
+	msgdiv.innerHTML = "<div>Have another go.</div><p>Here's our " + bst + "route:</p><ul><li>" + tgt.route.join('<li>') + '</ul>';
 	msgdiv.style.display = 'inline-block';
 	var scoresp = document.getElementById('score');
 	scoresp.innerHTML = score;
@@ -526,19 +577,20 @@ function setTarget() {
 	tgttile.setContents("Target:<br>" + tgt.target);
     });
     numlen = nums.length;
-    if (options.exactTarget == 0) {
-	tgt = getTarget(nums);
-    } else {
-	tgt = getRandomTarget(nums);
-    }
     tgttile = tiles.newTile();
     tgttile.setSize(2,1);
-    tgttile.setContents("Target:<br>" + tgt.target);
     tgttile.setLines(2);
     tgttile.showContents();
     tgttile.show();
+    tgttile.setColours(null,"#555");
     tgttile.zIndex = -1;
     tgttile.setElement("zIndex");
+    if (options.exactTarget == 0) {
+	tgt = getTarget(nums);
+	tgttile.setContents("Target:<br>" + tgt.target);
+    } else {
+	tgt = getRandomTarget(nums,tgttile);
+    }
     var p = tiles.ScreenAnchor("south");
     tgttile.setPosition(p.x,p.y,"north");
     tgttile.moveTo(p.x,2,"north",1);
